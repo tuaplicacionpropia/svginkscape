@@ -25,11 +25,12 @@ section by::
 """
 from __future__ import unicode_literals
 import io
+import os.path
 
 from svgwrite.container import SVG, Defs
 from svgwrite.elementfactory import ElementFactory
 from svgwrite.utils import pretty_xml
-
+from svgwrite.svgloader import SvgLoader
 
 class Drawing(SVG, ElementFactory):
     """ This is the SVG drawing represented by the top level *svg* element.
@@ -56,9 +57,14 @@ class Drawing(SVG, ElementFactory):
         super(Drawing, self).__init__(size=size, **extra)
         self.filename = filename
         self._stylesheets = []  # list of stylesheets appended
+        self.load_xml()
 
+    """
+      Load elements from svg file
+    """
     def load_xml(self):
-        pass
+        if os.path.isfile(self.filename):
+          SvgLoader().load(self, self.filename)
 
     def get_xml(self):
         """ Get the XML representation as `ElementTree` object.
