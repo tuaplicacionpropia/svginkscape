@@ -57,6 +57,9 @@ class Drawing(SVG, ElementFactory):
         self.filename = filename
         self._stylesheets = []  # list of stylesheets appended
 
+    def load_xml(self):
+        pass
+
     def get_xml(self):
         """ Get the XML representation as `ElementTree` object.
 
