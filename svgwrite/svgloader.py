@@ -171,10 +171,15 @@ class SvgLoader(object):
         currentNode = root
         self.namespaces = root.nsmap
         
-        dwg.attribs['xmlns'] = "http://www.w3.org/2000/svg"
+        #dwg.attribs['xmlns'] = "http://www.w3.org/2000/svg"
+        self.namespaces[''] = "http://www.w3.org/2000/svg"
         for key in self.namespaces:
-            if key is not None:
-                dwg.attribs['xmlns:' + key] = self.namespaces[key]
+            if key is not None and key != "ns0" and key != "ns1" and key != "svg":
+                dwg.attribs['xmlns' + (':' if len(key) > 0 else '') + key] = self.namespaces[key]
+
+        print(">>>>>>>>>>>>>>>>>>")
+        print(">>>>>>>>>>>>>>>>>>")
+        print(dwg.attribs)
         
         for key in root.attrib:
             dwg.attribs[key] = root.attrib[key]
@@ -194,46 +199,54 @@ class SvgLoader(object):
               break
         return result
 
+    def _loadPrefixName (self, name):
+        result = None
+        idx = name.rfind('}')
+        prefixUrl = name[1:idx] if (idx > -1) else ""
+        result = self.loadPrefixNamespace(prefixUrl) if len(prefixUrl) > 0 else ""
+        return result
+
+    def _loadBaseName (self, name):
+        result = None
+        idx = name.rfind('}')
+        result = name[(idx+1):] if (idx > -1) else name
+        return result
+
+    def _loadFullName (self, name):
+        result = None
+        base = self._loadBaseName(name)
+        prefix = self._loadPrefixName(name)
+        result = prefix + (":" if len(prefix) > 0 else "") + base
+        return result
+
+    def _loadBaseName (self, name):
+        result = None
+        idx = name.rfind('}')
+        result = name[(idx+1):] if (idx > -1) else name
+        return result
+
     def processAttrs(self, node):
         result = dict()
         for key in node.attrib:
-            idx = key.rfind('}')
-            keyname = key[(idx+1):] if (idx > -1) else key
-            prefixUrl = key[1:idx] if (idx > -1) else ""
-            print("prefixUrl")
-            print(prefixUrl)
-            print("namespaces")
-            print(self.namespaces)
-            prefix = self.loadPrefixNamespace(prefixUrl)
-            print("prefix")
-            print(prefix)
-            prefix = prefix + ":" if len(prefix) > 0 else ""
-            newkey = prefix + keyname
+            newkey = self._loadFullName(key)
             value = node.attrib[key]
             result[newkey] = value
-        
         return result
 
     def doLoadItem(self, node):
         result = None
+
         print("child")
-        print(node.attrib)
-        tagname = str(node.tag)
-        idx = tagname.rfind('}')
-        tagname = tagname[(idx+1):] if (idx > -1) else tagname
-        print("tagname")
-        print(tagname)
+        tagname = self._loadBaseName(node.tag)
         args = []
         kwargs = self.processAttrs(node)
-        print("node.attrib")
-        print(kwargs)
-        
+        kwargs['debug'] = False
+
         if tagname in factoryelements:
             result = factoryelements[tagname](*args, **kwargs)
-            print("result.attribs")
-            print(result.attribs)
         else:
-            result = CustomElement(tagname, *args, **kwargs)
+            fullName = self._loadFullName(node.tag)
+            result = CustomElement(fullName, *args, **kwargs)
             #result.elementname = tagname
         #result.debug = False
 

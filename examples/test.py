@@ -14,10 +14,10 @@ import svgwrite
 print "dos"
 
 def use(name):
-    dwg = svgwrite.Drawing(name, profile='full')
+    dwg = svgwrite.Drawing(name, profile='full', debug=False)
     dwg.add(dwg.line((0, 0), (1000, 0), stroke=svgwrite.rgb(10, 10, 16, '%')))
     dwg.add(dwg.text('Test', insert=(0, 500.2)))
-    dwg.saveas("/home/jmramoss/HD1/PROYECTOS/apps/svgwrite/examples/test3.svg")
+    dwg.saveas("/home/jmramoss/HD1/PROYECTOS/apps/svgwrite/examples/test4.svg")
 
 print "tres"
 
