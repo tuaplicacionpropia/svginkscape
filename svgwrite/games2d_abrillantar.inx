@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<inkscape-extension xmlns="http://www.inkscape.org/namespace/inkscape/extension">
+	<_name>Abrillantar</_name>
+	<id>org.tuaplicacionpropia.games2d.svg.abrillantar</id>
+	<dependency type="executable" location="extensions">games2d_abrillantar.py</dependency>
+	<dependency type="executable" location="extensions">games2d_base.py</dependency>
+	<dependency type="executable" location="extensions">inkex.py</dependency>
+	<dependency type="executable" location="extensions">pathmodifier.py</dependency>
+	<effect>
+		<object-type>path</object-type>
+		<effects-menu>
+			<submenu _name="2D Games"/>
+		</effects-menu>
+	</effect>
+	<script>
+		<command reldir="extensions" interpreter="python">games2d_abrillantar.py</command>
+	</script>
+</inkscape-extension>
