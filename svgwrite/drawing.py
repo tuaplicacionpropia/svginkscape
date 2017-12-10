@@ -59,6 +59,131 @@ class Drawing(SVG, ElementFactory):
         self._stylesheets = []  # list of stylesheets appended
         self.load_xml()
 
+
+    # defines view_center in terms of document units
+    def getposinlayer(self):
+        #defaults
+        self.current_layer = self.document.getroot()
+        self.view_center = (0.0,0.0)
+
+        layerattr = self.document.xpath('//sodipodi:namedview/@inkscape:current-layer', namespaces=NSS)
+        if layerattr:
+            layername = layerattr[0]
+            layer = self.document.xpath('//svg:g[@id="%s"]' % layername, namespaces=NSS)
+            if layer:
+                self.current_layer = layer[0]
+
+        xattr = self.document.xpath('//sodipodi:namedview/@inkscape:cx', namespaces=NSS)
+        yattr = self.document.xpath('//sodipodi:namedview/@inkscape:cy', namespaces=NSS)
+        if xattr and yattr:
+            x = self.unittouu( xattr[0] + 'px' )
+            y = self.unittouu( yattr[0] + 'px')
+            doc_height = self.unittouu(self.document.getroot().get('height'))
+            if x and y:
+                self.view_center = (float(x), doc_height - float(y)) # FIXME: y-coordinate flip, eliminate it when it's gone in Inkscape
+
+    def getNamedView(self):
+        return self.document.xpath('//sodipodi:namedview', namespaces=NSS)[0]
+
+    def createGuide(self, posX, posY, angle):
+        atts = {
+          'position': str(posX)+','+str(posY),
+          'orientation': str(sin(radians(angle)))+','+str(-cos(radians(angle)))
+          }
+        guide = etree.SubElement(
+                  self.getNamedView(),
+                  addNS('guide','sodipodi'), atts )
+        return guide
+
+    #a dictionary of unit to user unit conversion factors
+    __uuconv = {'in':90.0, 'pt':1.25, 'px':1.0, 'mm':3.5433070866, 'cm':35.433070866, 'm':3543.3070866,
+              'km':3543307.0866, 'pc':15.0, 'yd':3240.0 , 'ft':1080.0}
+
+    # Function returns the unit used for the values in SVG.
+    # For lack of an attribute in SVG that explicitly defines what units are used for SVG coordinates,
+    # try to calculate the unit from the SVG width and SVG viewbox.
+    # Defaults to 'px' units.
+    def getDocumentUnit(self):
+        svgunit = 'px' #default to pixels
+
+        svgwidth = self.document.getroot().get('width')
+        viewboxstr = self.document.getroot().get('viewBox')
+        if viewboxstr:
+            unitmatch = re.compile('(%s)$' % '|'.join(self.__uuconv.keys()))
+            param = re.compile(r'(([-+]?[0-9]+(\.[0-9]*)?|[-+]?\.[0-9]+)([eE][-+]?[0-9]+)?)')
+
+            p = param.match(svgwidth)
+            u = unitmatch.search(svgwidth)    
+            
+            width = 100 #default
+            viewboxwidth = 100 #default
+            svgwidthunit = 'px' #default assume 'px' unit
+            if p:
+                width = float(p.string[p.start():p.end()])
+            else:
+                errormsg(_("SVG Width not set correctly! Assuming width = 100"))
+            if u:
+                svgwidthunit = u.string[u.start():u.end()]
+
+            viewboxnumbers = []
+            for t in viewboxstr.split():
+                try:
+                    viewboxnumbers.append(float(t))
+                except ValueError:
+                    pass
+            if len(viewboxnumbers) == 4:  #check for correct number of numbers
+                viewboxwidth = viewboxnumbers[2]
+
+            svgunitfactor = self.__uuconv[svgwidthunit] * width / viewboxwidth
+
+            # try to find the svgunitfactor in the list of units known. If we don't find something, ...
+            eps = 0.01 #allow 1% error in factor
+            for key in self.__uuconv:
+                if are_near_relative(self.__uuconv[key], svgunitfactor, eps):
+                    #found match!
+                    svgunit = key;
+
+        return svgunit
+
+
+    def unittouu(self, string):
+        '''Returns userunits given a string representation of units in another system'''
+        unit = re.compile('(%s)$' % '|'.join(self.__uuconv.keys()))
+        param = re.compile(r'(([-+]?[0-9]+(\.[0-9]*)?|[-+]?\.[0-9]+)([eE][-+]?[0-9]+)?)')
+
+        p = param.match(string)
+        u = unit.search(string)    
+        if p:
+            retval = float(p.string[p.start():p.end()])
+        else:
+            retval = 0.0
+        if u:
+            try:
+                return retval * (self.__uuconv[u.string[u.start():u.end()]] / self.__uuconv[self.getDocumentUnit()])
+            except KeyError:
+                pass
+        else: # default assume 'px' unit
+            return retval / self.__uuconv[self.getDocumentUnit()]
+
+        return retval
+
+    def uutounit(self, val, unit):
+        return val / (self.__uuconv[unit] / self.__uuconv[self.getDocumentUnit()])
+
+    def addDocumentUnit(self, value):
+        ''' Add document unit when no unit is specified in the string '''
+        try:
+            float(value)
+            return value + self.getDocumentUnit()
+        except ValueError:
+            return value
+
+
+
+
+
+
+
     """
       Load elements from svg file
     """
@@ -134,5 +259,3 @@ class Drawing(SVG, ElementFactory):
         """
         self.filename = filename
         self.save(pretty=pretty)
-
-

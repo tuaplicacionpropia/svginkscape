@@ -111,6 +111,41 @@ class BaseElement(object):
     def set_parameter(self, parameter):
         self._parameter = parameter
 
+
+
+    def getElementById(self, id):
+        path = '//*[@id="%s"]' % id
+        el_list = self.document.xpath(path, namespaces=NSS)
+        if el_list:
+          return el_list[0]
+        else:
+          return None
+
+    def getParentNode(self, node):
+        for parent in self.document.getiterator():
+            if node in parent.getchildren():
+                return parent
+                break
+
+    def uniqueId(self, old_id, make_new_id = True):
+        new_id = old_id
+        if make_new_id:
+            while new_id in self.doc_ids:
+                new_id += random.choice('0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
+            self.doc_ids[new_id] = 1
+        return new_id
+
+    def xpathSingle(self, path):
+        try:
+            retval = self.document.xpath(path, namespaces=NSS)[0]
+        except:
+            errormsg(_("No matching node for expression: %s") % path)
+            retval = None
+        return retval
+
+
+
+
     def next_id(self, value=None):
         return AutoID.next_id(value)
 
